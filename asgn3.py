@@ -84,6 +84,24 @@ def cos_sim(v0,v1):
   #print("Warning: cos_sim is incorrectly defined")
   return cos
 
+
+def jaccard(v0, v1):
+    x = v0.keys()
+    y = v1.keys()
+    
+    intersection_cardinality = len(set(x) & set(y))
+    union_cardinality = len(set(x) | set(y))
+    return intersection_cardinality/union_cardinality
+
+
+def dice_coefficient(v0, v1):
+    x = v0.keys()
+    y = v1.keys()
+    
+    intersection_cardinality = len(set(x) & set(y))
+    return 2 * intersection_cardinality/(len(x) + len(y))
+
+
 def create_ppmi_vectors(wids, o_counts, co_counts, tot_count):
     '''Creates context vectors for the words in wids, using PPMI.
     These should be sparse vectors.
@@ -118,6 +136,57 @@ def create_ppmi_vectors(wids, o_counts, co_counts, tot_count):
         #print(vect)
     #print("Warning: create_ppmi_vectors is incorrectly defined")
     return vectors
+
+
+### NU FACEM ASTA
+'''
+def create_not_ppmi_vectors(wids, o_counts, co_counts, tot_count):
+    #print(len(wids))
+    #print(wids)
+    #print(o_counts)
+    #print(co_counts)
+    #print(tot_count)
+    vectors = {}
+    for wid0 in wids:
+        ##you will need to change this
+        vect = {}
+        c_x = o_counts[wid0]
+        for k, v in co_counts[wid0].items():
+            c_y = o_counts[k]
+            c_xy = v
+            pmi = PMI(c_xy, c_x, c_y, tot_count)
+            vect[k] = (pmi + 1) / 2
+        vectors[wid0] = vect
+        #print(vect)
+    #print("Warning: create_ppmi_vectors is incorrectly defined")
+    return vectors
+'''
+
+'''
+def compute_tf(o_counts, tot_count):
+    tfDict = {}
+    for k,v in o_counts.item():
+        tfDict[k] = v/tot_count
+    return tfDict
+
+def 
+
+
+def create_tfidf_vectors(wids, o_counts, co_counts, tot_count): 
+'''  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def read_counts(filename, wids):
   '''Reads the counts from file. It returns counts for all words, but to
@@ -172,6 +241,33 @@ def print_sorted_pairs(similarities, o_counts, file_name=None, first=0, last=100
     else:
       print(output_str)
   file_handle.close()
+  
+  
+def print_to_csv(similarities, file_name, first=0, last=100):
+  '''Sorts the pairs of words by their similarity scores and prints
+  out the sorted list from index first to last, along with the
+  counts of each word in each pair.
+
+  :type similarities: dict 
+  :type o_counts: dict
+  :type first: int
+  :type last: int
+  :param similarities: the word id pairs (keys) with similarity scores (values)
+  :param o_counts: the counts of each word id
+  :param first: index to start printing from
+  :param last: index to stop printing
+  :return: none
+  '''
+
+  with open(file_name, 'w') as csvfile:
+      writer = csv.writer(csvfile, delimiter=',',
+                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+      writer.writerow(['Source', 'Target', 'Weight'])   
+      for pair in sorted(similarities.keys(), key=lambda x: similarities[x], reverse = True)[first:last]:
+        writer.writerow([wid2word[pair[0]], wid2word[pair[1]], round(similarities[pair], 3)])
+  
+  
+  
   
 def freq_v_sim(sims):
   xs = []
@@ -234,15 +330,82 @@ wid_pairs = make_pairs(all_wids)
 
 #make the word vectors
 vectors = create_ppmi_vectors(all_wids, o_counts, co_counts, N)
+# vectors_tfidf = create_tfidf_vectors(all_wids, o_counts, co_counts, N)
+
+
+
+
+## OSAMA
+'''
+for test_word in test_words:
+    if test_word == 'osama':
+        continue
+    try:
+        print(test_word, STEMMER.stem(test_word),co_counts[word2wid['osama']][word2wid[STEMMER.stem(test_word)]])
+    except KeyError:
+        print(test_word)
+'''
+
+
+
+
+
+
+
 
 # compute cosine similarites for all pairs we consider
-print("compute")
+'''
+print("Compute cos_sim")
 c_sims = {(wid0,wid1): cos_sim(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
 #c_sims = {(wid0,wid1): cos_sim(co_counts[wid0],co_counts[wid1]) for (wid0,wid1) in wid_pairs}
 
-
 print("Sort by cosine similarity")
 print_sorted_pairs(c_sims, o_counts, file_name='cos_sim.txt', last=-1)
+print_to_csv(c_sims, file_name='cos_sim.csv', last=-1)
+
+
+print("Compute jaccard")
+j_sims = {(wid0,wid1): jaccard(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
+#c_sims = {(wid0,wid1): cos_sim(co_counts[wid0],co_counts[wid1]) for (wid0,wid1) in wid_pairs}
+
+print("Sort by jaccard similarity")
+print_sorted_pairs(j_sims, o_counts, file_name='jaccard.txt', last=-1)
+print_to_csv(j_sims, file_name='jaccard.csv', last=-1)
+
+
+print("Compute dice coefficient")
+d_sims = {(wid0,wid1): dice_coefficient(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
+#c_sims = {(wid0,wid1): cos_sim(co_counts[wid0],co_counts[wid1]) for (wid0,wid1) in wid_pairs}
+
+
+print("Sort by dice-coefficient similarity")
+print_sorted_pairs(d_sims, o_counts, file_name='dice_coefficient.txt', last=-1)
+'''
 
 
 
+'''
+print("Compute cos_sim")
+c_sims = {(wid0,wid1): cos_sim(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
+#c_sims = {(wid0,wid1): cos_sim(co_counts[wid0],co_counts[wid1]) for (wid0,wid1) in wid_pairs}
+
+print("Sort by cosine similarity")
+print_sorted_pairs(c_sims, o_counts, file_name='not_pmi_cos_sim.txt', last=-1)
+
+
+print("Compute jaccard")
+j_sims = {(wid0,wid1): jaccard(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
+#c_sims = {(wid0,wid1): cos_sim(co_counts[wid0],co_counts[wid1]) for (wid0,wid1) in wid_pairs}
+
+print("Sort by jaccard similarity")
+print_sorted_pairs(j_sims, o_counts, file_name='not_pmi_jaccard.txt', last=-1)
+
+
+print("Compute dice coefficient")
+d_sims = {(wid0,wid1): dice_coefficient(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
+#c_sims = {(wid0,wid1): cos_sim(co_counts[wid0],co_counts[wid1]) for (wid0,wid1) in wid_pairs}
+
+
+print("Sort by dice-coefficient similarity")
+print_sorted_pairs(d_sims, o_counts, file_name='not_pmi_dice_coefficient.txt', last=-1)
+'''
