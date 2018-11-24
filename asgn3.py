@@ -3,6 +3,7 @@ from math import log,sqrt
 import operator
 from nltk.stem import *
 from nltk.stem.porter import *
+from nltk.corpus import wordnet as wn
 import matplotlib.pyplot as plt
 from load_map import *
 import numpy as np
@@ -138,56 +139,6 @@ def create_ppmi_vectors(wids, o_counts, co_counts, tot_count):
     return vectors
 
 
-### NU FACEM ASTA
-'''
-def create_not_ppmi_vectors(wids, o_counts, co_counts, tot_count):
-    #print(len(wids))
-    #print(wids)
-    #print(o_counts)
-    #print(co_counts)
-    #print(tot_count)
-    vectors = {}
-    for wid0 in wids:
-        ##you will need to change this
-        vect = {}
-        c_x = o_counts[wid0]
-        for k, v in co_counts[wid0].items():
-            c_y = o_counts[k]
-            c_xy = v
-            pmi = PMI(c_xy, c_x, c_y, tot_count)
-            vect[k] = (pmi + 1) / 2
-        vectors[wid0] = vect
-        #print(vect)
-    #print("Warning: create_ppmi_vectors is incorrectly defined")
-    return vectors
-'''
-
-'''
-def compute_tf(o_counts, tot_count):
-    tfDict = {}
-    for k,v in o_counts.item():
-        tfDict[k] = v/tot_count
-    return tfDict
-
-def 
-
-
-def create_tfidf_vectors(wids, o_counts, co_counts, tot_count): 
-'''  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def read_counts(filename, wids):
   '''Reads the counts from file. It returns counts for all words, but to
   save memory it only returns cooccurrence counts for the words
@@ -266,6 +217,15 @@ def print_to_csv(similarities, file_name, first=0, last=100):
       for pair in sorted(similarities.keys(), key=lambda x: similarities[x], reverse = True)[first:last]:
         writer.writerow([wid2word[pair[0]], wid2word[pair[1]], round(similarities[pair], 3)])
   
+
+
+def print_direct_similarities(similarities, file_name):
+  with open(file_name, 'w') as csvfile:
+      writer = csv.writer(csvfile, delimiter=',',
+                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+      writer.writerow(['Word1', 'Word2', 'Similarity'])   
+      for triple in similarities:
+          writer.writerow([triple[0], triple[1], triple[2]])
   
   
   
@@ -301,9 +261,12 @@ stemmed_to_original = collections.defaultdict(list)
 #test_words = ["cat", "dog", "mouse", "computer","@justinbieber"]
 
 test_words = []
+feelings = []
 spamReader = csv.reader(open('feelings.csv', newline=''), delimiter=',', quotechar='|')
 for row in spamReader:
     row_words = [word for word in row]
+    if row_words[0] not in ['obama', 'osama']:
+        feelings.extend(row_words)
     test_words.extend(row_words)
 
 stemmed_to_original_all = collections.defaultdict(list)
@@ -336,7 +299,8 @@ vectors = create_ppmi_vectors(all_wids, o_counts, co_counts, N)
 
 
 ## OSAMA
-'''
+print('#######################################################################')
+print('OSAMA')
 for test_word in test_words:
     if test_word == 'osama':
         continue
@@ -344,24 +308,107 @@ for test_word in test_words:
         print(test_word, STEMMER.stem(test_word),co_counts[word2wid['osama']][word2wid[STEMMER.stem(test_word)]])
     except KeyError:
         print(test_word)
-'''
 
 
+## OBAMA
+print('#######################################################################')
+print('OBAMA')
+for test_word in test_words:
+    if test_word == 'obama':
+        continue
+    try:
+        print(test_word, STEMMER.stem(test_word),co_counts[word2wid['obama']][word2wid[STEMMER.stem(test_word)]])
+    except KeyError:
+        print(test_word)
+print('#######################################################################')
+      
+adjective_to_noun = {
+    'happy': 'happiness',
+    'delighted': 'delight',
+    'ecstatic': 'ecstasy',
+    'cheerful': 'cheerfulness',
+    'calm': 'calm',
+    'peaceful': 'peace',
+    'relaxed': 'relaxation',
+    'quiet': 'quiet',
+    'serene': 'serenity',
+    'angry': 'anger',
+    'irritated': 'irritation',
+    'enraged': 'rage',
+    'annoyed': 'annoyance',
+    'hateful': 'hate',
+    'sad': 'sadness',
+    'depressed': 'depression',
+    'grief': 'grief',
+    'unhappy': 'unhappiness',
+    'upset': 'upset'
+}
+
+noun_to_adjective = {v: k for k, v in adjective_to_noun.items()}
+
+path_similarities_dict = {}
+lch_similarities_dict = {}
+wup_similarities_dict = {}
+
+path_similarities = []
+lch_similarities = []
+wup_similarities = []
 
 
+end = '.n.01'
+for i, word1 in enumerate(feelings):
+    #word1_end = '.a.01'
+    for j, word2 in enumerate(feelings):
+        if i >= j:
+          continue
+        #word2_end = '.a.01'
+        #print (word1, word2)
+        #if word1 == 'grief':
+        #    word1_end = '.n.01'
+        #elif word2 == 'grief':
+        #    word2_end = '.n.01'
+        
+        wid1 = word2wid[STEMMER.stem(word1)]
+        wid2 = word2wid[STEMMER.stem(word2)]
+        
+        if word1 in adjective_to_noun:
+          word11 = adjective_to_noun[word1]
+        else:
+          continue
+        
+        if word2 in adjective_to_noun:
+          word22 = adjective_to_noun[word2]
+        else:
+          continue
+            
+        if word11 != word22:
+            word11 = wn.synset(word11 + end)
+            word22 = wn.synset(word22 + end)
 
+            sim = word11.path_similarity(word22)
+            path_similarities.append((word1, word2, sim))
+            path_similarities_dict[(wid1, wid2)] = sim
+            
+            sim = word11.lch_similarity(word22)
+            lch_similarities.append((word1, word2, sim))
+            lch_similarities_dict[(wid1, wid2)] = sim
+            
+            sim = word11.wup_similarity(word22)
+            wup_similarities.append((word1, word2, sim))
+            wup_similarities_dict[(wid1, wid2)] = sim
+            #print(word1, word2, sim)
 
 
 
 # compute cosine similarites for all pairs we consider
-'''
+
 print("Compute cos_sim")
 c_sims = {(wid0,wid1): cos_sim(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
 #c_sims = {(wid0,wid1): cos_sim(co_counts[wid0],co_counts[wid1]) for (wid0,wid1) in wid_pairs}
 
 print("Sort by cosine similarity")
-print_sorted_pairs(c_sims, o_counts, file_name='cos_sim.txt', last=-1)
-print_to_csv(c_sims, file_name='cos_sim.csv', last=-1)
+print_sorted_pairs(c_sims, o_counts, file_name='Assignment3ANLP/experiments/cos_sim_both.txt', last=-1)
+print_to_csv(c_sims, file_name='Assignment3ANLP/experiments/cos_sim_both.csv', last=-1)
 
 
 print("Compute jaccard")
@@ -369,8 +416,8 @@ j_sims = {(wid0,wid1): jaccard(vectors[wid0],vectors[wid1]) for (wid0,wid1) in w
 #c_sims = {(wid0,wid1): cos_sim(co_counts[wid0],co_counts[wid1]) for (wid0,wid1) in wid_pairs}
 
 print("Sort by jaccard similarity")
-print_sorted_pairs(j_sims, o_counts, file_name='jaccard.txt', last=-1)
-print_to_csv(j_sims, file_name='jaccard.csv', last=-1)
+print_sorted_pairs(j_sims, o_counts, file_name='Assignment3ANLP/experiments/jaccard_both.txt', last=-1)
+print_to_csv(j_sims, file_name='Assignment3ANLP/experiments/jaccard_both.csv', last=-1)
 
 
 print("Compute dice coefficient")
@@ -379,8 +426,78 @@ d_sims = {(wid0,wid1): dice_coefficient(vectors[wid0],vectors[wid1]) for (wid0,w
 
 
 print("Sort by dice-coefficient similarity")
-print_sorted_pairs(d_sims, o_counts, file_name='dice_coefficient.txt', last=-1)
-'''
+print_sorted_pairs(d_sims, o_counts, file_name='Assignment3ANLP/experiments/dice_coefficient_both.txt', last=-1)
+
+print_direct_similarities(path_similarities, 'path_similarities.csv')
+print_direct_similarities(lch_similarities, 'lch_similarities.csv')
+print_direct_similarities(wup_similarities, 'wup_similarities.csv')
+
+def sort_dict_keys(this_dict):
+    result_dict = dict()  
+    for key_pair, value in this_dict.items():
+        if key_pair[0] > key_pair[1]:
+            new_pair = (key_pair[1], key_pair[0])
+        else:
+            new_pair = (key_pair[0], key_pair[1])
+        result_dict[new_pair] = value
+    return result_dict
+    #return {(k2, k1): v if k1 > k2 else (k1, k2): v for (k1, k2), v in this_dict.items()}
+
+
+path_similarities_dict_sorted = sort_dict_keys(path_similarities_dict)
+lch_similarities_dict_sorted = sort_dict_keys(lch_similarities_dict)
+wup_similarities_dict_sorted = sort_dict_keys(wup_similarities_dict)
+
+def normalize(xx):
+    def compute_mean(zz):
+        suma = 0
+        for elem in list(zz.values()):
+            suma += elem
+        return suma / len(zz)
+  
+    def compute_var(zz, zz_mean):
+        suma = 0
+        for elem in list(zz.values()):
+            suma += (elem - zz_mean) ** 2
+        return suma / (len(zz) - 1)
+  
+    xx_mean = compute_mean(xx)
+    xx_var = compute_var(xx, xx_mean)
+    normalized_xx = {}
+    for k, v in xx.items():
+        normalized_xx[k] = (v - xx_mean) / xx_var
+    return normalized_xx
+  
+def compute_error(outputs, jaccard_outputs, targets, error_function):
+    normalized_outputs = normalize(outputs)
+    #print(normalized_outputs)
+    normalized_targets= normalize(targets)
+    print('*'*10)
+    #print(normalized_targets)
+    error = root_mean_squared_error(outputs, targets)
+    error_jaccard = root_mean_squared_error(jaccard_outputs, targets)
+    '''
+    for target_key, target_value in targets.items():
+        print(target_key)
+        target_key_reverse = target_key
+        if target_key[0] > target_key[1]:
+            target_key_reverse = target_key[1], target_key[0]
+        if target_key_reverse in outputs:
+            print(target_value, outputs[target_key_reverse], jaccard_outputs[target_key_reverse])
+    '''
+
+    print(error, error_jaccard)
+        
+
+def root_mean_squared_error(outputs, targets):
+    suma = 0
+    for output_key, target_key in zip(outputs, targets):
+        suma += (outputs[output_key] - targets[target_key]) ** 2
+    return sqrt(suma / len(targets))
+
+path_similarities_errors = compute_error(c_sims, j_sims, path_similarities_dict_sorted, root_mean_squared_error)
+path_similarities_errors = compute_error(c_sims, j_sims, lch_similarities_dict_sorted, root_mean_squared_error)
+path_similarities_errors = compute_error(c_sims, j_sims, wup_similarities_dict_sorted, root_mean_squared_error)
 
 
 
