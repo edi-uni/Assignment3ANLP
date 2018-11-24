@@ -1,0 +1,20 @@
+happy happi 445
+delighted
+ecstatic
+glad glad 228
+cheerful cheer 60
+calm calm 18
+peaceful peac 254
+relaxed
+quiet quiet 12
+serene
+angry angri 21
+irritated irrit 14
+enraged
+annoyed annoy 35
+hateful hate 255
+sad sad 96
+depressed
+grief
+unhappy
+upset upset 27
