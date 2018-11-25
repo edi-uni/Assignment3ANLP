@@ -102,6 +102,8 @@ def dice_coefficient(v0, v1):
     intersection_cardinality = len(set(x) & set(y))
     return 2 * intersection_cardinality/(len(x) + len(y))
 
+def random_coefficient(v0, v1):
+    return np.random.uniform(0, 1)
 
 def create_ppmi_vectors(wids, o_counts, co_counts, tot_count):
     '''Creates context vectors for the words in wids, using PPMI.
@@ -323,25 +325,25 @@ for test_word in test_words:
 print('#######################################################################')
       
 adjective_to_noun = {
-    'happy': 'happiness',
-    'delighted': 'delight',
-    'ecstatic': 'ecstasy',
-    'cheerful': 'cheerfulness',
-    'calm': 'calm',
-    'peaceful': 'peace',
-    'relaxed': 'relaxation',
-    'quiet': 'quiet',
-    'serene': 'serenity',
-    'angry': 'anger',
-    'irritated': 'irritation',
-    'enraged': 'rage',
-    'annoyed': 'annoyance',
-    'hateful': 'hate',
-    'sad': 'sadness',
-    'depressed': 'depression',
-    'grief': 'grief',
-    'unhappy': 'unhappiness',
-    'upset': 'upset'
+    'happy': 'happiness.n.01',
+    'delighted': 'delight.n.01',
+    'ecstatic': 'ecstasy.n.01',
+    'cheerful': 'cheerfulness.n.01',
+    'calm': 'calm.n.01',
+    'peaceful': 'peace.n.01',
+    'relaxed': 'relaxation.n.03',
+    'quiet': 'quiet.n.04',
+    'serene': 'serenity.n.01',
+    'angry': 'anger.n.01',
+    'irritated': 'irritation.n.01',
+    'enraged': 'rage.n.01',
+    'annoyed': 'annoyance.n.01',
+    'hateful': 'hate.n.01',
+    'sad': 'sadness.n.01',
+    'depressed': 'depression.n.01',
+    'grieved': 'grief.n.01',
+    'unhappy': 'unhappiness.n.01',
+    'upset': 'upset.n.01'
 }
 
 noun_to_adjective = {v: k for k, v in adjective_to_noun.items()}
@@ -382,8 +384,8 @@ for i, word1 in enumerate(feelings):
           continue
             
         if word11 != word22:
-            word11 = wn.synset(word11 + end)
-            word22 = wn.synset(word22 + end)
+            word11 = wn.synset(word11)
+            word22 = wn.synset(word22)
 
             sim = word11.path_similarity(word22)
             path_similarities.append((word1, word2, sim))
@@ -408,7 +410,8 @@ c_sims = {(wid0,wid1): cos_sim(vectors[wid0],vectors[wid1]) for (wid0,wid1) in w
 
 print("Sort by cosine similarity")
 print_sorted_pairs(c_sims, o_counts, file_name='Assignment3ANLP/experiments/cos_sim_both.txt', last=-1)
-print_to_csv(c_sims, file_name='Assignment3ANLP/experiments/cos_sim_both.csv', last=-1)
+#print_to_csv(c_sims, file_name='Assignment3ANLP/experiments/cos_sim_both.csv', last=-1)
+print_to_csv(c_sims, file_name='Assignment3ANLP/experiments/cos_sim.csv', last=-1)
 
 
 print("Compute jaccard")
@@ -417,13 +420,15 @@ j_sims = {(wid0,wid1): jaccard(vectors[wid0],vectors[wid1]) for (wid0,wid1) in w
 
 print("Sort by jaccard similarity")
 print_sorted_pairs(j_sims, o_counts, file_name='Assignment3ANLP/experiments/jaccard_both.txt', last=-1)
-print_to_csv(j_sims, file_name='Assignment3ANLP/experiments/jaccard_both.csv', last=-1)
+#print_to_csv(j_sims, file_name='Assignment3ANLP/experiments/jaccard_both.csv', last=-1)
+print_to_csv(j_sims, file_name='Assignment3ANLP/experiments/jaccard.csv', last=-1)
 
 
 print("Compute dice coefficient")
 d_sims = {(wid0,wid1): dice_coefficient(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
 #c_sims = {(wid0,wid1): cos_sim(co_counts[wid0],co_counts[wid1]) for (wid0,wid1) in wid_pairs}
 
+random_sims = {(wid0,wid1): random_coefficient(vectors[wid0],vectors[wid1]) for (wid0,wid1) in wid_pairs}
 
 print("Sort by dice-coefficient similarity")
 print_sorted_pairs(d_sims, o_counts, file_name='Assignment3ANLP/experiments/dice_coefficient_both.txt', last=-1)
@@ -448,7 +453,7 @@ path_similarities_dict_sorted = sort_dict_keys(path_similarities_dict)
 lch_similarities_dict_sorted = sort_dict_keys(lch_similarities_dict)
 wup_similarities_dict_sorted = sort_dict_keys(wup_similarities_dict)
 
-def normalize(xx):
+def standardize(xx):
     def compute_mean(zz):
         suma = 0
         for elem in list(zz.values()):
@@ -468,12 +473,31 @@ def normalize(xx):
         normalized_xx[k] = (v - xx_mean) / xx_var
     return normalized_xx
   
-def compute_error(outputs, jaccard_outputs, targets, error_function):
-    normalized_outputs = normalize(outputs)
+def normalize(xx):
+    min_val = min(xx.values())
+    max_val = max(xx.values())
+    
+    norm = {k: ((v - min_val) / (max_val - min_val)) for k, v in xx.items()}
+    #norm = {k: v / max_val for k, v in xx.items()}
+    
+    return norm
+  
+def compute_error(outputs, jaccard_outputs, targets, error_function, to_normalize=False):
+    #n = outputs / 3.63758615972639
+    #normalized_outputs = outputs#standardize(outputs)
     #print(normalized_outputs)
-    normalized_targets= normalize(targets)
+    #targets = {k: ((v - 0.747214401830221) / (3.63758615972639 - 0.747214401830221)) for k, v in targets.items()}
+    #normalized_targets= targets#standardize(targets)
+    #print(targets)
+    #print('#'*20)
+    #print(normalized_targets)
     print('*'*10)
     #print(normalized_targets)
+    
+    
+    if to_normalize:
+        targets = normalize(targets)
+    
     error = root_mean_squared_error(outputs, targets)
     error_jaccard = root_mean_squared_error(jaccard_outputs, targets)
     '''
@@ -495,9 +519,34 @@ def root_mean_squared_error(outputs, targets):
         suma += (outputs[output_key] - targets[target_key]) ** 2
     return sqrt(suma / len(targets))
 
-path_similarities_errors = compute_error(c_sims, j_sims, path_similarities_dict_sorted, root_mean_squared_error)
-path_similarities_errors = compute_error(c_sims, j_sims, lch_similarities_dict_sorted, root_mean_squared_error)
-path_similarities_errors = compute_error(c_sims, j_sims, wup_similarities_dict_sorted, root_mean_squared_error)
+path_similarities_errors = compute_error(c_sims, j_sims, path_similarities_dict_sorted, root_mean_squared_error, True)
+lch_similarities_errors = compute_error(c_sims, j_sims, lch_similarities_dict_sorted, root_mean_squared_error, True)
+wup_similarities_errors = compute_error(c_sims, j_sims, wup_similarities_dict_sorted, root_mean_squared_error, True)
+
+
+'''
+for k, v in adjective_to_noun.items():
+    word = wn.synset(v)
+    print (v.upper(), word.definition())
+'''
+
+
+for k in adjective_to_noun.keys():
+    try:
+        co_counts[word2wid['enrag']][word2wid[STEMMER.stem(word)]]
+    except:
+        print (k)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
